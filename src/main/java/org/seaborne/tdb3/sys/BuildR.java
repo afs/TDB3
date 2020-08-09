@@ -41,6 +41,13 @@ public class BuildR {
 
     private static StoreParams p = StoreParams.getDftStoreParams();
 
+
+    // XXX
+//    public static ColumnFamilyOptions colFamilyOpts(ColumnFamilyDescriptor descr) {
+//        ColumnFamilyOptions cfo = new ColumnFamilyOptions();
+//        return cfo;
+//    }
+
     public static ColumnFamilyDescriptor cfNodeHash2Id = columnFamily(p.getNodeTableBaseName()+":NodeHash2Id");
     public static ColumnFamilyDescriptor cfNodeId2Node = columnFamily(p.getNodeTableBaseName()+":NodeId2Node");
 
@@ -70,6 +77,11 @@ public class BuildR {
                                                              cfSPOG, cfPOSG, cfOSPG,
                                                              cfGPU
     };
+
+
+    // -1 : off.
+    public static int batchSizeIndex = -1;
+    public static int batchSizeNodeTable = -1;
 
     // Note to self... again ... after all constants
     static { init() ; }
@@ -107,18 +119,38 @@ public class BuildR {
         List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
         // leak?
         try {
-            DBOptions options = new DBOptions();
-//            options.setMaxBackgroundJobs(0);
-//            options.setMaxBackgroundCompactions(0);
-//            options.setMaxBackgroundFlushes(0);
+            BlockBasedTableConfig tfc = new BlockBasedTableConfig();
+            Cache cache = new LRUCache(100*1024*1024); // Dft: 8M
+            tfc.setBlockCache(cache);
+            tfc.setBlockSize(32*1024);
+
+            Options options = new Options();
+            options.setTableFormatConfig(tfc);
+
+            DBOptions dbOptions = new DBOptions(options);
+            dbOptions.setCreateIfMissing(true);
+
+            //dbOptions.createMissingColumnFamilies()
+            //dbOptions.setTwoWriteQueues(true);
+
+//            dbOptions.setMaxBackgroundJobs(0);
+//            dbOptions.setMaxBackgroundCompactions(0);
+//            dbOptions.setMaxBackgroundFlushes(0);
 
             TransactionDBOptions x = new TransactionDBOptions();
 //            x.setNumStripes(0);
 //            x.setDefaultLockTimeout(0);
 //            x.setTransactionLockTimeout(0);
-//            x.setWritePolicy(TxnDBWritePolicy.WRITE_PREPARED);
+            x.setWritePolicy(TxnDBWritePolicy.WRITE_PREPARED);
 
-            TransactionDB db = TransactionDB.open(options, x, db_path, columnFamilyDescriptors, columnFamilyHandles) ;
+            TransactionDB db = TransactionDB.open(dbOptions, x, db_path, columnFamilyDescriptors, columnFamilyHandles) ;
+//            MutableDBOptionsBuilder opt2b = MutableDBOptions.builder()
+//                .setWritableFileMaxBufferSize(10*1024*1024)
+//                .setCompactionReadaheadSize(2*1024*1024)
+//                .setMaxOpenFiles(-1)
+//                ;
+//            opt2b.setBaseBackgroundCompactions(2);
+//            db.setDBOptions(opt2b.build());
 
             //OptimisticTransactionOptions x1 = new OptimisticTransactionOptions();
             //OptimisticTransactionDB db = OptimisticTransactionDB.open(options, db_path, columnFamilyDescriptors, columnFamilyHandles) ;

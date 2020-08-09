@@ -33,7 +33,7 @@ import org.seaborne.tdb3.ByteCodec;
 public class ByteCodecThrift implements ByteCodec<Node> {
     public static ByteCodecThrift create() { return new ByteCodecThrift(); }
 
-    // TSerializer and TDeserializer is single-threaded.
+    // TSerializer and TDeserializer are single-threaded.
     // We can preallocate space.
     private final RDF_Term t = new RDF_Term();
     private final TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());

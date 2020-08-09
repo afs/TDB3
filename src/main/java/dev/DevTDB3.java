@@ -19,6 +19,7 @@ package dev;
 
 import org.apache.jena.atlas.lib.DateTimeUtils ;
 import org.apache.jena.atlas.lib.FileOps ;
+import org.apache.jena.atlas.lib.Timer;
 import org.apache.jena.atlas.logging.LogCtl;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.graph.Node ;
@@ -31,31 +32,100 @@ import org.apache.jena.sparql.sse.SSE ;
 import org.apache.jena.system.Txn ;
 import org.apache.jena.tdb2.params.StoreParams;
 import org.seaborne.tdb3.DatabaseBuilderTDB3;
+import org.seaborne.tdb3.sys.BuildR;
 
 public class DevTDB3 {
     // Todo:
 
-    // ToDo's
-    // Prefixes.
-    // Tests
-    // Tidy.
-    // Merge back - update TDB2.
-    // Low-level filters.
-    // Loader
-    // Assembler
+    // DBOE
+    //   Split StoreParams.
+    //   Prefixes.
+    //   TupleDB framework
+    //   UnionGraph - no prefixes.
+    //   Simplify ComponentId
+    // TranactionCoordinator without(!) journal.
+
+    // TDB3
+    //   Tests
+    //   Tidy.
+    //   Merge back - update TDB2.
+    //   Low-level filters.
+    //   Loader
+    //   Assembler
+    //   Define the interface database as tuples.
+    //   RocksRangeIndex iterator. BatchingIterator.
+    // Issue copying bytes?
+
+    // RcoiksDB
+    //   Block cache
+    //   Delay/stop compaction during a large load.
 
     // J4 - sort out prefixes for DatasetGraphs.
 
     static {
-        LogCtl.setCmdLogging();
+        LogCtl.setLogging();
         //LogCtl.setJavaLogging();
     }
 
-    public static void main(String[] args) {
-        // TupleTable.
+    static int N = 100000;
+    public static void main(String...args) {
+        BuildR.batchSizeIndex = N;
+        BuildR.batchSizeNodeTable = N;
+        // On / bsbm-1m:
+        // 0 - off - 28k
+        // 1 =>
+        // 10 =>
+        // 100 => 54k,59k
+        // 1000 =>
+        // 10000 =>
+
+        // 5m : 6K (batch 100k)
+
+        // Split numbers?
+        // "Mode"
+
+        // TDB2:
+        // bsbm-1m: 47k
+        main1();
+    }
+
+    public static void main1(String...args) {
         String DIR = "DB3";
         FileOps.ensureDir(DIR);
-        boolean cleanStart = false;
+        boolean cleanStart = true;
+        String DATA = "/home/afs/Datasets/BSBM/bsbm-5m.nt.gz";
+
+        if ( cleanStart )
+            FileOps.clearAll(DIR);
+
+        DatasetGraph dsg = DatabaseBuilderTDB3.build(Location.create(DIR), StoreParams.getDftStoreParams());
+        //DatasetGraph dsg = DatabaseMgr.connectDatasetGraph(DIR);
+
+        System.out.printf("Start .... Batch size = %,d\n",N);
+
+        long z = Timer.time(()->{
+            Txn.executeWrite(dsg,  ()->{
+                // Batch load.
+                // Parallelize writes
+                // Avoiding Memtable
+                // Turn off compactions.
+                RDFDataMgr.read(dsg, DATA);
+            });
+        });
+
+        System.out.printf("Time  = %,.3fms\n", (z/1000.0));
+        int x =
+            Txn.calculateRead(dsg,  ()->{
+                return dsg.getDefaultGraph().size();
+            });
+        System.out.printf("Count = %,d\n", x);
+        System.out.printf("Rate  = %,.3f TPS\n", 1000*x/(1.0*z));
+    }
+
+    public static void main0(String...args) {
+        String DIR = "DB3";
+        FileOps.ensureDir(DIR);
+        boolean cleanStart = true;
 
         if ( cleanStart )
             FileOps.clearAll(DIR);
@@ -74,12 +144,29 @@ public class DevTDB3 {
             Txn.executeWrite(dsg,  ()->{
                 dsg.getDefaultGraph().getPrefixMapping().setNsPrefix("ex", "http://example/");
                 dsg.add(Quad.defaultGraphIRI, s, p, n1);
-                dsg.add(g1, s, p, n3);
-                dsg.add(g2, s, p, n3);
                 dsg.add(g1, s, p, n1);
                 dsg.add(g2, s, p, n1);
+                dsg.add(g1, s, p, n2);
+                dsg.add(g2, s, p, n2);
+
+                //Force batch!
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+                dsg.add(g2, s, p, n2);
+
             });
         }
+
+        Txn.executeWrite(dsg,  ()->{
+            dsg.add(g2, s, p, n3);
+        });
+
         Txn.executeRead(dsg,  ()->{
             RDFDataMgr.write(System.out, dsg, Lang.TRIG);
 //            Iterator<Quad> iter = dsg.find(null, null, null, null);

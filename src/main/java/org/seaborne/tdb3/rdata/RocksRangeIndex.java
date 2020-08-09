@@ -30,12 +30,10 @@ import org.apache.jena.dboe.base.record.RecordFactory ;
 import org.apache.jena.dboe.base.record.RecordMapper ;
 import org.apache.jena.dboe.index.RangeIndex ;
 import org.apache.jena.tdb2.TDBException ;
-import org.rocksdb.ColumnFamilyHandle ;
-import org.rocksdb.RocksDB ;
-import org.rocksdb.RocksDBException ;
-import org.rocksdb.RocksIterator ;
+import org.rocksdb.*;
+import org.seaborne.tdb3.sys.BuildR;
 
-public class RocksRangeIndex implements RangeIndex {
+public class RocksRangeIndex implements RangeIndex, RocksPrepare {
 
     private final byte[] empty = new byte[0];
     private final RocksDB db;
@@ -47,7 +45,7 @@ public class RocksRangeIndex implements RangeIndex {
         this.factory = factory;
         this.colFamily = colFamily;
     }
-    
+
     @Override
     public Record find(Record record) {
         try {
@@ -74,6 +72,12 @@ public class RocksRangeIndex implements RangeIndex {
         }
     }
 
+    //CRUDE batching to see if it makes a difference.
+
+    private int i = 0 ;
+    private WriteBatch writeBatch = new WriteBatch();
+    private WriteOptions writeOptions = new WriteOptions();
+
     @Override
     public boolean insert(Record record) {
         try {
@@ -85,12 +89,37 @@ public class RocksRangeIndex implements RangeIndex {
 //                if ( Bytes.compare(v, v0) == 0 )
 //                    return false;
 //            }
-            db.put(colFamily, record.getKey(), v) ;
+
+            if ( BuildR.batchSizeNodeTable > 0 ) {
+                //XXX writeBatch.put(colFamily,ByteBuffer,ByteBuffer);
+                writeBatch.put(colFamily, record.getKey(), v) ;
+                i++;
+                flushBatch(BuildR.batchSizeIndex);
+            } else
+                db.put(colFamily, record.getKey(), v) ;
             return true;
         }
         catch (RocksDBException e) {
             throw new TDBException(e);
         }
+    }
+
+    private void flushBatch(int limit) {
+        if ( i > limit ) {
+            try {
+                db.write(writeOptions, writeBatch);
+                writeBatch.clear();
+                i = 0;
+            }
+            catch (RocksDBException e) {
+                throw new TDBException(e);
+            }
+        }
+    }
+
+    @Override
+    public void prepare() {
+        flushBatch(0);
     }
 
     @Override
@@ -99,6 +128,9 @@ public class RocksRangeIndex implements RangeIndex {
 //            byte[] v0 = db.get(colFamily, record.getKey());
 //            if ( v0 == null )
 //                return false;
+
+            // WriteBatch
+            //writeBatch.delete();
             db.delete(colFamily, record.getKey());
             return true;
         }
@@ -115,7 +147,7 @@ public class RocksRangeIndex implements RangeIndex {
                 iter.seekToFirst();
             else
                 iter.seek(recordMin.getKey());
-            List<X> x = new ArrayList<>(1000); 
+            List<X> x = new ArrayList<>(1000);
             while(iter.isValid()) {
                 byte[]k = iter.key();
                 if ( recordMax != null ) {
@@ -145,7 +177,7 @@ public class RocksRangeIndex implements RangeIndex {
                 iter.seekToFirst();
             else
                 iter.seek(recordMin.getKey());
-            List<Record> x = new ArrayList<>(1000); 
+            List<Record> x = new ArrayList<>(1000);
             while(iter.isValid()) {
                 byte[]k = iter.key();
                 if ( recordMax != null ) {
@@ -159,7 +191,7 @@ public class RocksRangeIndex implements RangeIndex {
             return x.iterator();
         }
     }
-    
+
     @Override
     public RecordFactory getRecordFactory() {
         return factory ;

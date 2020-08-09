@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.seaborne.tdb3;
+package org.seaborne.tupledb;
 
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -36,6 +36,7 @@ import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
+/** {@link StorageRDF} based on {@link NodeTupleTable}. */
 public class StorageTuples implements StorageRDF {
     private NodeTupleTable      tripleTable;
     private NodeTupleTable      quadTable;

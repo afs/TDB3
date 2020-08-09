@@ -32,8 +32,9 @@ import org.apache.jena.tdb2.store.nodetable.NodeTableNative ;
 import org.rocksdb.* ;
 import org.seaborne.tdb3.ByteCodec;
 import org.seaborne.tdb3.RocksException;
+import org.seaborne.tdb3.sys.BuildR;
 
-public class RocksNodeTable extends NodeTableNative {
+public class RocksNodeTable extends NodeTableNative implements RocksPrepare {
     private final ByteCodec<Node> codec ;
     private final RocksDB db ;
     private final ColumnFamilyHandle columnFamily;
@@ -60,7 +61,6 @@ public class RocksNodeTable extends NodeTableNative {
     // or something the wrong length.
     // The restart code copies with all cases but this is persistsed.
     private static final byte[] nextIdKey = {0};
-
 
     private final byte[] nextIdBytes = new byte[8];
     private long nextId = 1;
@@ -146,6 +146,10 @@ public class RocksNodeTable extends NodeTableNative {
     // Workspace building the key.
     private final byte[] key = new byte[8];
 
+    private int i = 0;
+    private WriteBatch writeBatch = new WriteBatch();
+    private WriteOptions writeOptions = new WriteOptions();
+
     @Override
     protected NodeId writeNodeToTable(Node node) {
         // Alloc key.
@@ -153,7 +157,15 @@ public class RocksNodeTable extends NodeTableNative {
         try {
             Bytes.setLong(id, key);
             byte[] bytes = codec.encode(node);
-            db.put(columnFamily, key, bytes);
+
+            if ( BuildR.batchSizeNodeTable > 0 ) {
+                writeBatch.put(columnFamily, key, bytes);
+                i++;
+                flushBatch(BuildR.batchSizeNodeTable);
+            }
+            else
+                db.put(columnFamily, key, bytes);
+
             // Record the counter every so often.
             if ( nextId % IdAllocSaveTick == 0 ) {
                 Bytes.setLong(nextId, nextIdBytes);
@@ -161,6 +173,24 @@ public class RocksNodeTable extends NodeTableNative {
             }
         } catch (Exception e) { throw new TDBException(e); }
         return NodeIdFactory.createPtr(id);
+    }
+
+    private void flushBatch(int limit) {
+        if ( i > limit ) {
+            try {
+                db.write(writeOptions, writeBatch);
+                writeBatch.clear();
+                i = 0;
+            }
+            catch (RocksDBException e) {
+                throw new TDBException(e);
+            }
+        }
+    }
+
+    @Override
+    public void prepare() {
+        flushBatch(0);
     }
 
     @Override
@@ -178,13 +208,8 @@ public class RocksNodeTable extends NodeTableNative {
     }
 
     @Override
-    public Iterator<Pair<NodeId, Node>> all()
-    {
-
-
+    public Iterator<Pair<NodeId, Node>> all() {
         return super.all();
-
-
     }
 
     @Override

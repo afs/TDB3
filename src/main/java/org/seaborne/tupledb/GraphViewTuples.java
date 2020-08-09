@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.seaborne.tdb3;
+package org.seaborne.tupledb;
 
 import java.util.Iterator;
 import java.util.function.Function;
@@ -40,25 +40,25 @@ import org.apache.jena.util.iterator.WrappedIterator;
  * General operations for TDB graphs (free-standing graph, default graph and
  * named graphs)
  */
-public class GraphTDB_Any extends GraphViewStorage {
+public class GraphViewTuples extends GraphViewStorage {
 
-    public /*package*/ static GraphTDB_Any tdb_createDefaultGraph(DatasetGraphAny dsg, StoragePrefixes prefixes)
-    { return new GraphTDB_Any(dsg, Quad.defaultGraphNodeGenerated, prefixes); }
+    public /*package*/ static GraphViewTuples tdb_createDefaultGraph(DatasetGraphTuples dsg, StoragePrefixes prefixes)
+    { return new GraphViewTuples(dsg, Quad.defaultGraphNodeGenerated, prefixes); }
 
-    public /*package*/ static GraphTDB_Any tdb_createNamedGraph(DatasetGraphAny dsg, Node graphIRI, StoragePrefixes prefixes)
-    { return new GraphTDB_Any(dsg, graphIRI, prefixes); }
+    public /*package*/ static GraphViewTuples tdb_createNamedGraph(DatasetGraphTuples dsg, Node graphIRI, StoragePrefixes prefixes)
+    { return new GraphViewTuples(dsg, graphIRI, prefixes); }
 
-    public /*package*/ static GraphTDB_Any tdb_createUnionGraph(DatasetGraphAny dsg, StoragePrefixes prefixes)
-    { return new GraphTDB_Any(dsg, Quad.unionGraph, prefixes); }
+    public /*package*/ static GraphViewTuples tdb_createUnionGraph(DatasetGraphTuples dsg, StoragePrefixes prefixes)
+    { return new GraphViewTuples(dsg, Quad.unionGraph, prefixes); }
 
-    private final DatasetGraphAny dataset;
+    private final DatasetGraphTuples dataset;
 
-    private GraphTDB_Any(DatasetGraphAny dataset, Node graphName, StoragePrefixes prefixes) {
+    private GraphViewTuples(DatasetGraphTuples dataset, Node graphName, StoragePrefixes prefixes) {
         super(dataset, graphName, prefixes);
         this.dataset = dataset;
     }
 
-    public DatasetGraphAny getDSG() {
+    public DatasetGraphTuples getDSG() {
         return dataset;
     }
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.seaborne.tdb3;
+package org.seaborne.tupledb;
 
 
 import java.io.File;
@@ -36,8 +36,11 @@ import org.apache.jena.sparql.engine.optimizer.reorder.ReorderTransformation;
 import org.apache.jena.tdb2.params.StoreParams;
 import org.apache.jena.tdb2.params.StoreParamsCodec;
 import org.apache.jena.tdb2.params.StoreParamsFactory;
+import org.apache.jena.tdb2.store.QuadTable;
 import org.apache.jena.tdb2.store.StoragePrefixesTDB;
+import org.apache.jena.tdb2.store.TripleTable;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
+import org.apache.jena.tdb2.store.nodetable.NodeTableCache;
 import org.apache.jena.tdb2.store.nodetable.NodeTableInline;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTableConcrete;
@@ -45,19 +48,55 @@ import org.apache.jena.tdb2.store.tupletable.TupleIndex;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 import org.apache.jena.tdb2.sys.SystemTDB;
 
-public abstract class AbstractDatabaseBuilder {
+/** Build a {@link DatasetGraphTuples}.
+ * @implNote
+ *  It is possible to call the builder to get parts, not just the whole dataset graph.
+ * This is used by tests.
+ *
+ * Because datastructures have to tie together, a purely functional design, with
+ * all arguments in the "create" calls,
+ * is easier to get wrong.
+ */
+public abstract class AbstractBuilderDatabaseTuples {
 
-    protected Location location;
-    protected StoreParams params;
+    // Builder configuration.
+    protected final Location location;
+    protected final StoreParams appParams;
+
+    // Fields for the building process.
     protected TransactionalSystem txnSystem;
+    protected StoreParams params;
 
-//    protected AbstractDatabaseBuilder(Location location, StoreParams params) {
-//    }
-
-    protected AbstractDatabaseBuilder() {}
-
-    protected DatasetGraph buildDatasetGraph(Location location, StoreParams appParams) {
+    protected AbstractBuilderDatabaseTuples(Location location, StoreParams appParams) {
         this.location = location;
+        this.appParams = appParams;
+    }
+
+    protected abstract void error(String msg);
+
+    public DatasetGraph buildDatasetGraph() {
+        startBuild();
+        initBuild(appParams);
+
+
+        ReorderTransformation reorder = ReorderLib.fixed();
+        this.txnSystem = createTransactionalSystem();
+
+        StorageTuples storageRDF = createStorageRDF();
+        StoragePrefixes storagePrefixes = createStoragePrefixes();
+        DatasetGraph dsg = new DatasetGraphTuples(location, params, reorder, storageRDF, storagePrefixes, txnSystem);
+        finishBuild();
+        return dsg;
+    }
+
+
+    private void ensureInit() {
+
+    }
+
+    /** Setup the storage area. Decide on parameters.
+     * @param appParams */
+    protected void initBuild(StoreParams appParams) {
         StoreParams locParams = StoreParamsCodec.read(location);
         StoreParams dftParams = StoreParams.getDftStoreParams();
         boolean newArea = isNewDatabaseArea(location);
@@ -67,18 +106,15 @@ public abstract class AbstractDatabaseBuilder {
             fromExistingDatabaseArea(location);
         // This can write the chosen parameters if necessary (new database, appParams != null, locParams == null)
         this.params = StoreParamsFactory.decideStoreParams(location, newArea, appParams, locParams, dftParams);
-
-        ReorderTransformation reorder = ReorderLib.fixed();
-        this.txnSystem = createTransactionalSystem();
-
-        StorageTuples storageRDF = createStorageRDF(txnSystem);
-        StoragePrefixes storagePrefixes = createStoragePrefixes();
-        DatasetGraph dsg = new DatasetGraphAny(location, params, reorder,
-            storageRDF, storagePrefixes, txnSystem);
-        return dsg;
     }
 
+    protected void startBuild() { }
+
+    protected void finishBuild() { }
+
     protected abstract void fromExistingDatabaseArea(Location location);
+
+    protected abstract void formatNewDatabaseArea(Location location);
 
     private static boolean isNewDatabaseArea(Location location) {
         if ( location.isMem() )
@@ -108,22 +144,21 @@ public abstract class AbstractDatabaseBuilder {
         return true;
     };
 
-    protected abstract void error(String msg);
+    public abstract TransactionalSystem createTransactionalSystem();
 
-    protected abstract void formatNewDatabaseArea(Location location);
-
-    // ---- High level.
-
-    public StorageTuples createStorageRDF(TransactionalSystem txnSystem) {
+    public StorageTuples createStorageRDF() {
         NodeTable nodeTable = createNodeTable("nodes");
+        // These are such thin clases, we bypass them.
+//      TripleTable tripleTable = createTripleTable(nodeTable);
+//      QuadTable quadTable = createQuadTable(nodeTable);
 
         TupleIndex[] tripleIndexes = createIndexes(params.getPrimaryIndexTriples(), params.getTripleIndexes());
         TupleIndex[] quadIndexes = createIndexes(params.getPrimaryIndexQuads(), params.getQuadIndexes());
 
-        NodeTupleTable tripleTable = new NodeTupleTableConcrete(3,tripleIndexes, nodeTable);
-        NodeTupleTable quadTable = new NodeTupleTableConcrete(4, quadIndexes, nodeTable);
+        NodeTupleTable tripleNTT = new NodeTupleTableConcrete(3, tripleIndexes, nodeTable);
+        NodeTupleTable quadNTT = new NodeTupleTableConcrete(4, quadIndexes, nodeTable);
 
-        StorageTuples storageTuples = new StorageTuples(txnSystem, tripleTable, quadTable);
+        StorageTuples storageTuples = new StorageTuples(txnSystem, tripleNTT, quadNTT);
         return storageTuples;
     }
 
@@ -133,35 +168,30 @@ public abstract class AbstractDatabaseBuilder {
         return prefixes;
     }
 
-    private StoragePrefixesTDB buildPrefixTable(NodeTable prefixNodes) {
+    protected StoragePrefixesTDB buildPrefixTable(NodeTable prefixNodes) {
         String primary = params.getPrimaryIndexPrefix();
         String[] indexes = params.getPrefixIndexes();
-
         TupleIndex prefixIndexes[] = createIndexes(primary, indexes);
-        // XXX
-//        if ( prefixIndexes.length != 1 )
-//            error(log, "Wrong number of triple table tuples indexes: "+prefixIndexes.length);
-
         // No cache - the prefix mapping is a cache
-        //NodeTable prefixNodes = makeNodeTable(location, pnNode2Id, pnId2Node, -1, -1, -1);
-        NodeTupleTable prefixTable = new NodeTupleTableConcrete(primary.length(),
-                                                                prefixIndexes,
-                                                                prefixNodes);
+        // No inline needed.
+        NodeTupleTable prefixTable = new NodeTupleTableConcrete(primary.length(), prefixIndexes, prefixNodes);
         StoragePrefixesTDB x = new StoragePrefixesTDB(txnSystem, prefixTable);
-        //DatasetPrefixesTDB prefixes = new DatasetPrefixesTDB(prefixTable);
-        //log.debug("Prefixes: "+primary+" :: "+String.join(",", indexes));
         return x;
     }
 
+    /** A triple table */
+    private TripleTable createTripleTable(NodeTable nodeTable) {
+        TupleIndex[] tripleIndexes = createIndexes(params.getPrimaryIndexTriples(), params.getTripleIndexes());
+        return new TripleTable(tripleIndexes, nodeTable);
+    }
 
-    // Abstract
-    public abstract TransactionalSystem createTransactionalSystem();
+    /** A quad table */
+    private QuadTable createQuadTable(NodeTable nodeTable) {
+        TupleIndex[] quadIndexes = createIndexes(params.getPrimaryIndexQuads(), params.getQuadIndexes());
+        return new QuadTable(quadIndexes, nodeTable);
+    }
 
-//    public TripleTable createTripleTable() { return null; }
-//
-//    public QuadTable createQuadTable() { return null; }
-
-    protected TupleIndex[] createIndexes(String primary, String[] indexNames) {
+    public TupleIndex[] createIndexes(String primary, String[] indexNames) {
         int indexRecordLen = primary.length()*SystemTDB.SizeOfNodeId;
         TupleIndex indexes[] = new TupleIndex[indexNames.length];
         for (int i = 0; i < indexes.length; i++) {
@@ -172,8 +202,7 @@ public abstract class AbstractDatabaseBuilder {
         return indexes;
     }
 
-
-    protected TupleIndex createTupleIndex(String primary, String index, String indexLabel) {
+    public TupleIndex createTupleIndex(String primary, String index, String indexLabel) {
         TupleMap cmap = TupleMap.create(primary, index);
         RecordFactory rf = new RecordFactory(SystemTDB.SizeOfNodeId * cmap.length(), 0);
         RangeIndex rIdx = createRangeIndex(rf, index);
@@ -181,17 +210,31 @@ public abstract class AbstractDatabaseBuilder {
         return tIdx;
     }
 
+    /**
+     *  Create a {@link NodeTable}, with storage, inlining and node cache.
+     */
     public NodeTable createNodeTable(String name) {
         NodeTable nodeTable = createBaseNodeTable(name);
-        // Needed? nodeTable = NodeTableCache.create(nodeTable, params);
+        nodeTable = NodeTableCache.create(nodeTable, params);
         nodeTable = NodeTableInline.create(nodeTable);
         return nodeTable;
     }
 
-    // -- Basics
-    //public TupleIndex createTupleIndex(String name, String indexName, String indexLabel) {
+    /**
+     * Create an {@link Index}.
+     */
+    public Index createIndex(RecordFactory rf, String index) {
+        return createRangeIndex(rf, index);
+    }
 
-    protected abstract RangeIndex createRangeIndex(RecordFactory rf, String index);
-    protected /*abstract*/ Index createIndex(RecordFactory rf, String index) { return createRangeIndex(rf, index); }
-    protected abstract NodeTable createBaseNodeTable(String name);
+    /**
+     * Create an {@link RangeIndex}.
+     */
+    public abstract RangeIndex createRangeIndex(RecordFactory rf, String index);
+
+    /**
+     * Create a {@link NodeTable} for storage - no inlining, no cache.
+     * @see #createNodeTable
+     */
+    public abstract NodeTable createBaseNodeTable(String name);
 }

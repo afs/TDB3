@@ -19,15 +19,31 @@
 package org.seaborne.tdb3.txnr;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.jena.atlas.lib.StrUtils;
 import org.apache.jena.dboe.transaction.txn.ComponentId;
 import org.apache.jena.dboe.transaction.txn.SysTransState;
 import org.apache.jena.dboe.transaction.txn.Transaction;
 import org.apache.jena.dboe.transaction.txn.TransactionalComponent;
-import org.rocksdb.*;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.TransactionDB;
+import org.rocksdb.WriteOptions;
+import org.seaborne.tdb3.rdata.RocksPrepare;
 import org.seaborne.tdb3.sys.RocksTDB;
 
+/**
+ * {@link TransactionalComponent} for a RocksDB database.
+ * 
+ * @implNote RocksDB itself provide the full transaction cycle for commit.
+ * <p>
+ * As of version Rocks 6.4.6, the API does not expose a prepare()-commit() pair,
+ * only commit(). There is work-in-progress and when available, this component can
+ * be adapted to use that. Then multiple databases, or multiple
+ * different {@link TransactionalComponent TransactionalComponents}
+ * can be combined into one DBOE transaction.
+ */
 public class TransactionalComponentR implements TransactionalComponent {
 
     private final org.rocksdb.TransactionDB rocksTxnDB;
@@ -37,8 +53,13 @@ public class TransactionalComponentR implements TransactionalComponent {
         this(rocksTDB.rdb);
     }
 
-    TransactionalComponentR(TransactionDB rocksDB) {
+    private TransactionalComponentR(TransactionDB rocksDB) {
         rocksTxnDB = rocksDB;
+    }
+
+    private List<RocksPrepare> items = new ArrayList<>();
+    public void addPreparables(RocksPrepare item) {
+        items.add(item);
     }
 
     static ComponentId componentId = ComponentId.create(null, StrUtils.asUTF8bytes("RDB"));
@@ -77,6 +98,7 @@ public class TransactionalComponentR implements TransactionalComponent {
 
     @Override
     public ByteBuffer commitPrepare(Transaction transaction) {
+        items.forEach(RocksPrepare::prepare);
         return null;
     }
 

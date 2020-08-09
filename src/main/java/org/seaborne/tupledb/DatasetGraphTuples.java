@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.seaborne.tdb3;
+package org.seaborne.tupledb;
 
 import java.util.Iterator;
 
@@ -36,7 +36,7 @@ import org.apache.jena.tdb2.params.StoreParams;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
-public class DatasetGraphAny extends DatasetGraphStorage
+public class DatasetGraphTuples extends DatasetGraphStorage
 {
     private final StorageTuples storageTDB;
     private final Location location;
@@ -45,8 +45,8 @@ public class DatasetGraphAny extends DatasetGraphStorage
     private final ReorderTransformation reorderTransformation;
     private boolean isClosed = false;
 
-    public DatasetGraphAny(Location location, StoreParams params, ReorderTransformation reorderTransformation,
-                           StorageTuples storage, StoragePrefixes prefixes, TransactionalSystem txnSystem) {
+    public DatasetGraphTuples(Location location, StoreParams params, ReorderTransformation reorderTransformation,
+                              StorageTuples storage, StoragePrefixes prefixes, TransactionalSystem txnSystem) {
         super(storage, prefixes, txnSystem);
         this.storageTDB = storage;
         this.location = location;
@@ -122,21 +122,21 @@ public class DatasetGraphAny extends DatasetGraphStorage
         return getUnionGraphTDB();
     }
 
-    // GraphTDB
+    // Graph over tuples.
 
-    public GraphTDB_Any getDefaultGraphTDB() {
+    public GraphViewTuples getDefaultGraphTDB() {
         checkNotClosed();
-        return GraphTDB_Any.tdb_createDefaultGraph(this, getPrefixes());
+        return GraphViewTuples.tdb_createDefaultGraph(this, getPrefixes());
     }
 
-    public GraphTDB_Any getGraphTDB(Node graphNode) {
+    public GraphViewTuples getGraphTDB(Node graphNode) {
         checkNotClosed();
-        return GraphTDB_Any.tdb_createNamedGraph(this, graphNode, getPrefixes());
+        return GraphViewTuples.tdb_createNamedGraph(this, graphNode, getPrefixes());
     }
 
-    public GraphTDB_Any getUnionGraphTDB() {
+    public GraphViewTuples getUnionGraphTDB() {
         checkNotClosed();
-        return GraphTDB_Any.tdb_createUnionGraph(this, getPrefixes());
+        return GraphViewTuples.tdb_createUnionGraph(this, getPrefixes());
     }
 
     @Override

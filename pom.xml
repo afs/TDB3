@@ -25,18 +25,18 @@
   <parent>
     <groupId>org.apache.jena</groupId>
     <artifactId>jena</artifactId>
-    <version>3.14.0-SNAPSHOT</version>
+    <version>3.17.0-SNAPSHOT</version>
   </parent>
 
   <groupId>org.seaborne</groupId>
-  <artifactId>jena-tdb3</artifactId>
+  <artifactId>tdb3</artifactId>
   <version>0.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>TDB3 (${project.artifactId})</name>
   
   <properties>
-    <ver.jena>3.14.0-SNAPSHOT</ver.jena>
-    <ver.rocksdb>6.4.6</ver.rocksdb>
+    <ver.jena>3.16.0</ver.jena>
+    <ver.rocksdb>6.11.4</ver.rocksdb>
   </properties>
 
   <dependencies>
@@ -90,19 +90,17 @@
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
-
-     <!-- From Jena in scope test -->
+    
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <scope>compile</scope>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <scope>compile</scope>
-    </dependency> 
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+    </dependency>
 
   </dependencies>
 
