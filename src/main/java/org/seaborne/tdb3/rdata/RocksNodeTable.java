@@ -75,7 +75,7 @@ public class RocksNodeTable extends NodeTableNative implements RocksPrepare {
             int rc = db.get(columnFamily, nextIdKey, nextIdBytes);
             if ( rc == RocksDB.NOT_FOUND ) {
                 //System.err.println("Init counter");
-                // Initalize.
+                // Initialize.
                 nextId = initialNextId;
             } else {
                 // Scan forward.
@@ -103,7 +103,7 @@ public class RocksNodeTable extends NodeTableNative implements RocksPrepare {
     }
 
     /** Scan to find the largest in-use id.
-     * Retrun -1 for no key found. */
+     * Return -1 for no key found. */
     private long scanFrom(byte[] startBytes) {
         RocksIterator iter = db.newIterator(columnFamily);
         iter.seek(startBytes);
@@ -123,7 +123,7 @@ public class RocksNodeTable extends NodeTableNative implements RocksPrepare {
     /* Scan one-by-one, not as good because a small gap will stop the scan.
      * By tolerating gaps (in the iterator version) we can write the key state
      * before the key itself which may miss in the event of a crash.
-     * (The code actualy writes after a key is used.)
+     * (The code actually writes after a key is used.)
      */
     private long scanFrom0(byte[] startBytes) throws RocksDBException {
         //Scan one-by-one.

@@ -18,29 +18,24 @@
 
 package org.seaborne.tdb3.rdata;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList ;
 import java.util.Iterator ;
-import java.util.List ;
 
 import org.apache.jena.atlas.iterator.Iter ;
-import org.apache.jena.atlas.lib.Bytes ;
 import org.apache.jena.dboe.base.record.Record ;
 import org.apache.jena.dboe.base.record.RecordFactory ;
-import org.apache.jena.dboe.base.record.RecordMapper ;
-import org.apache.jena.dboe.index.RangeIndex ;
+import org.apache.jena.dboe.index.Index;
 import org.apache.jena.tdb2.TDBException ;
 import org.rocksdb.*;
 import org.seaborne.tdb3.sys.BuildR;
 
-public class RocksRangeIndex implements RangeIndex, RocksPrepare {
+public class RocksIndex implements Index, RocksPrepare {
 
     private final byte[] empty = new byte[0];
     private final RocksDB db;
     private final RecordFactory factory ;
     private final ColumnFamilyHandle colFamily ;
 
-    public RocksRangeIndex(RocksDB db, ColumnFamilyHandle colFamily, RecordFactory factory) {
+    public RocksIndex(RocksDB db, ColumnFamilyHandle colFamily, RecordFactory factory) {
         this.db = db;
         this.factory = factory;
         this.colFamily = colFamily;
@@ -118,6 +113,11 @@ public class RocksRangeIndex implements RangeIndex, RocksPrepare {
     }
 
     @Override
+    public Iterator<Record> iterator() {
+        return null;
+    }
+
+    @Override
     public void prepare() {
         flushBatch(0);
     }
@@ -136,72 +136,6 @@ public class RocksRangeIndex implements RangeIndex, RocksPrepare {
         }
         catch (RocksDBException e) {
             throw new TDBException(e);
-        }
-    }
-
-    @Override
-    public <X> Iterator<X> iterator(Record recordMin, Record recordMax, RecordMapper<X> mapper) {
-        // XXX Revisit!
-        try (RocksIterator iter = db.newIterator(colFamily)) {
-            if ( recordMin == null )
-                iter.seekToFirst();
-            else
-                iter.seek(recordMin.getKey());
-            List<X> x = new ArrayList<>(1000);
-            while(iter.isValid()) {
-                byte[]k = iter.key();
-                if ( recordMax != null ) {
-                    if ( Bytes.compare(k, recordMax.getKey()) >= 0 )
-                        break;
-                }
-                byte[]v = iter.value();
-                //x.add(getRecordFactory().create(k,v));
-                X mx = mapper.map(ByteBuffer.wrap(k), 0, k, getRecordFactory());
-                x.add(mx);
-                iter.next();
-            }
-            return x.iterator();
-        }
-    }
-
-    @Override
-    public Iterator<Record> iterator() {
-        return iterator(null, null);
-    }
-
-    private ReadOptions readOptionIter(Record recordMin, Record recordMax) {
-        ReadOptions readOptionIter = new ReadOptions();
-        readOptionIter.setPinData(true);
-        Slice slice1 = ( recordMin != null ) ? new Slice(recordMin.getKey()) : null;
-        Slice slice2 = ( recordMax != null ) ? new Slice(recordMax.getKey()) : null;
-        readOptionIter.setIterateLowerBound(slice1);
-        readOptionIter.setIterateUpperBound(slice2);
-        return readOptionIter;
-    }
-
-    // Chunking version.
-    @Override
-    public Iterator<Record> iterator(Record recordMin, Record recordMax) {
-
-        try (RocksIterator iter = db.newIterator(colFamily)) {
-//        ReadOptions opt = readOptionIter(recordMin, recordMax);
-//        try (RocksIterator iter = db.newIterator(colFamily, opt)) {
-            if ( recordMin == null )
-                iter.seekToFirst();
-            else
-                iter.seek(recordMin.getKey());
-            List<Record> x = new ArrayList<>(1000);
-            while(iter.isValid()) {
-                byte[]k = iter.key();
-                if ( recordMax != null ) {
-                    if ( Bytes.compare(k, recordMax.getKey()) >= 0 )
-                        break;
-                }
-                byte[]v = iter.value();
-                x.add(getRecordFactory().create(k,v));
-                iter.next();
-            }
-            return x.iterator();
         }
     }
 
@@ -243,28 +177,4 @@ public class RocksRangeIndex implements RangeIndex, RocksPrepare {
 
     @Override
     public void sync() {}
-
-    @Override
-    public Record minKey() {
-        try (RocksIterator iter = db.newIterator(colFamily)) {
-            iter.seekToFirst();
-            if ( !iter.isValid() )
-                return null ;
-            byte[] k = iter.key();
-            byte[] v = iter.value();
-            return getRecordFactory().create(k, v);
-        }
-    }
-
-    @Override
-    public Record maxKey() {
-        try (RocksIterator iter = db.newIterator(colFamily)) {
-            iter.seekToLast();
-            if ( !iter.isValid() )
-                return null ;
-            byte[] k = iter.key();
-            byte[] v = iter.value();
-            return getRecordFactory().create(k, v);
-        }
-    }
 }

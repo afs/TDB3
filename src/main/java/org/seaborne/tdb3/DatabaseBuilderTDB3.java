@@ -25,13 +25,17 @@ import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.index.Index;
 import org.apache.jena.dboe.index.RangeIndex;
-import org.apache.jena.dboe.transaction.txn.*;
+import org.apache.jena.dboe.transaction.txn.TransactionCoordinator;
+import org.apache.jena.dboe.transaction.txn.TransactionalBase;
+import org.apache.jena.dboe.transaction.txn.TransactionalComponent;
+import org.apache.jena.dboe.transaction.txn.TransactionalSystem;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.tdb2.params.StoreParams;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.sys.SystemTDB;
 import org.rocksdb.ColumnFamilyHandle;
 import org.seaborne.tdb3.rdata.ByteCodecThrift;
+import org.seaborne.tdb3.rdata.RocksIndex;
 import org.seaborne.tdb3.rdata.RocksNodeTable;
 import org.seaborne.tdb3.rdata.RocksRangeIndex;
 import org.seaborne.tdb3.sys.BuildR;
@@ -50,9 +54,10 @@ public class DatabaseBuilderTDB3 {
     static class Inner extends AbstractBuilderDatabaseTuples {
         private RocksTDB rtdb;
         private List<RocksRangeIndex> rangeIndexes = new ArrayList<>();
+        private List<RocksIndex> indexes = new ArrayList<>();
         private List<RocksNodeTable> nodeTables = new ArrayList<>();
         // Ugly
-        TransactionalComponentR rocksComp = null;
+        private TransactionalComponentR rocksComp = null;
 
         protected Inner(Location location, StoreParams appParams) {
             super(location, appParams);
@@ -61,6 +66,7 @@ public class DatabaseBuilderTDB3 {
         @Override
         protected void startBuild() {
             rangeIndexes.clear();
+            indexes.clear();
             nodeTables.clear();
             super.startBuild();
         }
@@ -68,10 +74,12 @@ public class DatabaseBuilderTDB3 {
         @Override
         protected void finishBuild() {
             rangeIndexes.forEach(rocksComp::addPreparables);
+            indexes.forEach(rocksComp::addPreparables);
             nodeTables.forEach(rocksComp::addPreparables);
             super.finishBuild();
             nodeTables.clear();
             rangeIndexes.clear();
+            indexes.clear();
         }
 
         @Override
@@ -100,13 +108,21 @@ public class DatabaseBuilderTDB3 {
         }
 
         @Override
+        public Index createIndex(RecordFactory recordFactory, String nIndex) {
+            ColumnFamilyHandle handle = BuildR.findHandle(rtdb, nIndex);
+            RocksIndex rIdx = new RocksIndex(rtdb.rdb, handle, recordFactory);
+            indexes.add(rIdx);
+            return rIdx;
+        }
+
+        @Override
         public NodeTable createBaseNodeTable(String name) {
             String nDat = name+":NodeHash2Id";
             String nIndex = name+":NodeId2Node";
 
             ColumnFamilyHandle h = BuildR.findHandle(rtdb, nDat);
             RecordFactory recordFactory = new RecordFactory(SystemTDB.LenNodeHash, SystemTDB.SizeOfNodeId) ;
-            Index hashNodeIndex = createRangeIndex(recordFactory, nIndex);
+            Index hashNodeIndex = createIndex(recordFactory, nIndex);
             RocksNodeTable rnt = new RocksNodeTable(rtdb.rdb, h, hashNodeIndex, ByteCodecThrift.create());
             nodeTables.add(rnt);
             return rnt;

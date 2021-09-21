@@ -17,6 +17,8 @@
 
 package dev;
 
+import java.io.IOException;
+
 import org.apache.jena.atlas.lib.DateTimeUtils ;
 import org.apache.jena.atlas.lib.FileOps ;
 import org.apache.jena.atlas.lib.Timer;
@@ -36,6 +38,8 @@ import org.seaborne.tdb3.sys.BuildR;
 
 public class DevTDB3 {
     // Todo:
+    //  Try with no indexes(!) - node table.
+    //  Node table - not via a RangeIndex.
 
     // DBOE
     //   Split StoreParams.
@@ -56,7 +60,7 @@ public class DevTDB3 {
     //   RocksRangeIndex iterator. BatchingIterator.
     // Issue copying bytes?
 
-    // RcoiksDB
+    // RocksDB
     //   Block cache
     //   Delay/stop compaction during a large load.
 
@@ -67,7 +71,16 @@ public class DevTDB3 {
         //LogCtl.setJavaLogging();
     }
 
-    static int N = 100000;
+    static int N = 1_000;
+    // BSBM 5m:
+    // 100000 : 110-115 seconds
+    // 10000  : 105s
+    // 5000   : 93.3
+    // 1000   : 91s ****
+    // 100    : 98
+    // 10     : 102
+    // 0      : 167.256
+
     public static void main(String...args) {
         BuildR.batchSizeIndex = N;
         BuildR.batchSizeNodeTable = N;
@@ -98,6 +111,13 @@ public class DevTDB3 {
         if ( cleanStart )
             FileOps.clearAll(DIR);
 
+        System.out.println("Ready...");
+        try {
+            System.in.read();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         DatasetGraph dsg = DatabaseBuilderTDB3.build(Location.create(DIR), StoreParams.getDftStoreParams());
         //DatasetGraph dsg = DatabaseMgr.connectDatasetGraph(DIR);
 
@@ -113,7 +133,7 @@ public class DevTDB3 {
             });
         });
 
-        System.out.printf("Time  = %,.3fms\n", (z/1000.0));
+        System.out.printf("Time  = %,.3f s\n", (z/1000.0));
         int x =
             Txn.calculateRead(dsg,  ()->{
                 return dsg.getDefaultGraph().size();

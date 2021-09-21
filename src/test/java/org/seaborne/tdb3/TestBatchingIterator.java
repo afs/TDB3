@@ -18,12 +18,13 @@
 
 package org.seaborne.tdb3;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Arrays ;
 import java.util.Iterator ;
 import java.util.List ;
 import java.util.function.BiFunction ;
 
-import static org.junit.Assert.* ;
 import org.apache.jena.atlas.iterator.Iter ;
 import org.junit.Test ;
 import org.seaborne.tdb3.sys.BatchingIterator;
