@@ -126,17 +126,17 @@ public class DatasetGraphTuples extends DatasetGraphStorage
 
     public GraphViewTuples getDefaultGraphTDB() {
         checkNotClosed();
-        return GraphViewTuples.tdb_createDefaultGraph(this, getPrefixes());
+        return GraphViewTuples.tdb_createDefaultGraph(this, getStoragePrefixes());
     }
 
     public GraphViewTuples getGraphTDB(Node graphNode) {
         checkNotClosed();
-        return GraphViewTuples.tdb_createNamedGraph(this, graphNode, getPrefixes());
+        return GraphViewTuples.tdb_createNamedGraph(this, graphNode, getStoragePrefixes());
     }
 
     public GraphViewTuples getUnionGraphTDB() {
         checkNotClosed();
-        return GraphViewTuples.tdb_createUnionGraph(this, getPrefixes());
+        return GraphViewTuples.tdb_createUnionGraph(this, getStoragePrefixes());
     }
 
     @Override

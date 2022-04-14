@@ -25,6 +25,7 @@ import org.apache.jena.tdb2.TDBException ;
 import org.apache.thrift.TDeserializer ;
 import org.apache.thrift.TSerializer ;
 import org.apache.thrift.protocol.TCompactProtocol ;
+import org.apache.thrift.transport.TTransportException;
 import org.seaborne.tdb3.ByteCodec;
 
 /**
@@ -36,8 +37,18 @@ public class ByteCodecThrift implements ByteCodec<Node> {
     // TSerializer and TDeserializer are single-threaded.
     // We can preallocate space.
     private final RDF_Term t = new RDF_Term();
-    private final TSerializer serializer = new TSerializer(new TCompactProtocol.Factory());
-    private final TDeserializer deserializer = new TDeserializer(new TCompactProtocol.Factory());
+    private final TSerializer serializer;
+    private final TDeserializer deserializer;
+
+    public ByteCodecThrift() {
+        try {
+            serializer = new TSerializer(new TCompactProtocol.Factory());
+            deserializer = new TDeserializer(new TCompactProtocol.Factory());
+        } catch (TTransportException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public byte[] encode(Node x) {
