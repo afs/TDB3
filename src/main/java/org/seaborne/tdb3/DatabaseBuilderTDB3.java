@@ -25,11 +25,13 @@ import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.index.Index;
 import org.apache.jena.dboe.index.RangeIndex;
+import org.apache.jena.dboe.storage.StoragePrefixes;
 import org.apache.jena.dboe.transaction.txn.TransactionCoordinator;
 import org.apache.jena.dboe.transaction.txn.TransactionalBase;
 import org.apache.jena.dboe.transaction.txn.TransactionalComponent;
 import org.apache.jena.dboe.transaction.txn.TransactionalSystem;
 import org.apache.jena.sparql.core.DatasetGraph;
+import org.apache.jena.sparql.engine.optimizer.reorder.ReorderTransformation;
 import org.apache.jena.tdb2.params.StoreParams;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.sys.SystemTDB;
@@ -42,6 +44,7 @@ import org.seaborne.tdb3.sys.BuildR;
 import org.seaborne.tdb3.sys.RocksTDB;
 import org.seaborne.tdb3.txnr.TransactionalComponentR;
 import org.seaborne.tupledb.AbstractBuilderDatabaseTuples;
+import org.seaborne.tupledb.StorageTuples;
 import org.slf4j.Logger;
 
 public class DatabaseBuilderTDB3 {
@@ -69,6 +72,12 @@ public class DatabaseBuilderTDB3 {
             indexes.clear();
             nodeTables.clear();
             super.startBuild();
+        }
+
+        @Override
+        protected DatasetGraph build(Location location2, StoreParams params2, ReorderTransformation reorder, StorageTuples storageRDF,
+                                     StoragePrefixes storagePrefixes, TransactionalSystem txnSystem2) {
+            return new DatasetGraphTDB3(rtdb, location, params, reorder, storageRDF, storagePrefixes, txnSystem);
         }
 
         @Override

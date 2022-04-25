@@ -23,17 +23,18 @@ import java.util.List;
 import org.apache.jena.dboe.base.file.Location;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.TransactionDB;
 
 /** Info for an open database */
 public class RocksTDB {
-    public final TransactionDB rdb;
-    //public final OptimisticTransactionDB rdb;
+    //public final TransactionDB rdb;
+    public final OptimisticTransactionDB rdb;
     public final Location location ;
     public final List<ColumnFamilyDescriptor> descriptors;
     public final List<ColumnFamilyHandle> cfHandles;
 
-    public RocksTDB(TransactionDB rdb, Location location, List<ColumnFamilyDescriptor> descriptors, List<ColumnFamilyHandle> cfHandles) {
+    public RocksTDB(OptimisticTransactionDB rdb, Location location, List<ColumnFamilyDescriptor> descriptors, List<ColumnFamilyHandle> cfHandles) {
         this.rdb = rdb ;
         this.location = location;
         this.descriptors = descriptors ;

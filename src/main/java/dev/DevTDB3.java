@@ -17,8 +17,6 @@
 
 package dev;
 
-import java.io.IOException;
-
 import org.apache.jena.atlas.lib.DateTimeUtils ;
 import org.apache.jena.atlas.lib.FileOps ;
 import org.apache.jena.atlas.lib.Timer;
@@ -30,10 +28,14 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.sparql.core.DatasetGraph ;
 import org.apache.jena.sparql.core.Quad ;
+import org.apache.jena.sparql.exec.QueryExec;
+import org.apache.jena.sparql.exec.RowSet;
+import org.apache.jena.sparql.exec.RowSetOps;
 import org.apache.jena.sparql.sse.SSE ;
 import org.apache.jena.system.Txn ;
 import org.apache.jena.tdb2.params.StoreParams;
 import org.seaborne.tdb3.DatabaseBuilderTDB3;
+import org.seaborne.tdb3.DatasetGraphTDB3;
 import org.seaborne.tdb3.sys.BuildR;
 
 public class DevTDB3 {
@@ -71,7 +73,7 @@ public class DevTDB3 {
         //LogCtl.setJavaLogging();
     }
 
-    static int N = 1_000;
+    static int N = 100_000;
     // BSBM 5m:
     // 100000 : 110-115 seconds
     // 10000  : 105s
@@ -106,17 +108,18 @@ public class DevTDB3 {
         String DIR = "DB3";
         FileOps.ensureDir(DIR);
         boolean cleanStart = true;
-        String DATA = "/home/afs/Datasets/BSBM/bsbm-5m.nt.gz";
+        //String DATA = "/home/afs/Datasets/BSBM/bsbm-5m.nt.gz";
+        String DATA = "/home/afs/Datasets/BSBM/bsbm-25m.nt.gz";
 
         if ( cleanStart )
             FileOps.clearAll(DIR);
 
-        System.out.println("Ready...");
-        try {
-            System.in.read();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        System.out.println("Ready...");
+//        try {
+//            System.in.read();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         DatasetGraph dsg = DatabaseBuilderTDB3.build(Location.create(DIR), StoreParams.getDftStoreParams());
         //DatasetGraph dsg = DatabaseMgr.connectDatasetGraph(DIR);
@@ -125,6 +128,7 @@ public class DevTDB3 {
 
         long z = Timer.time(()->{
             Txn.executeWrite(dsg,  ()->{
+                // Async parser.
                 // Batch load.
                 // Parallelize writes
                 // Avoiding Memtable
@@ -133,13 +137,32 @@ public class DevTDB3 {
             });
         });
 
-        System.out.printf("Time  = %,.3f s\n", (z/1000.0));
+        double seconds = (z/1000.0);
+        System.out.printf("Load time  = %,.3f s\n", seconds);
+
+        DatasetGraphTDB3 dsg3 =  (DatasetGraphTDB3)dsg;
+        long z1 = Timer.time(()->{
+            dsg3.compact();
+        });
+        double compactionSeconds = (z1/1000.0);
+        System.out.printf("Compaction = %,.3f s\n", compactionSeconds);
+
         int x =
             Txn.calculateRead(dsg,  ()->{
                 return dsg.getDefaultGraph().size();
             });
         System.out.printf("Count = %,d\n", x);
-        System.out.printf("Rate  = %,.3f TPS\n", 1000*x/(1.0*z));
+        System.out.printf("Rate  = %,.3f TPS\n", x/seconds);
+
+
+        RowSet rowSet1 = QueryExec.dataset(dsg).query("SELECT (count(*) AS ?C) { ?s ?p ?o }").select();
+        RowSetOps.out(rowSet1);
+
+//        RowSet rowSet2 = QueryExec.dataset(dsg).query("SELECT DISTINCT ?s { ?s ?p ?o } LIMIT 10").select();
+//        RowSetOps.out(rowSet2);
+
+        RowSet rowSet3 = QueryExec.dataset(dsg).query("SELECT * { <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/instances/ProductType1> ?p ?o }").select();
+        RowSetOps.out(rowSet3);
     }
 
     public static void main0(String...args) {

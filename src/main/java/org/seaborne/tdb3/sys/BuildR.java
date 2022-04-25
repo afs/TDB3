@@ -124,36 +124,47 @@ public class BuildR {
             tfc.setBlockCache(cache);
             tfc.setBlockSize(32*1024);
 
+            // Also:
+
             Options options = new Options();
             options.setTableFormatConfig(tfc);
+            options.setCompactionStyle(CompactionStyle.LEVEL);
+            options.setAllowMmapReads(true);
+            options.setAllowMmapWrites(true);
+            options.setIncreaseParallelism(3);
+
+            CompressionOptions compressionOptions = new CompressionOptions();
+            compressionOptions.setEnabled(true);
+            options.setCompressionOptions(compressionOptions);
 
             DBOptions dbOptions = new DBOptions(options);
+            dbOptions.setCompactionReadaheadSize(2*1024*1024);
             dbOptions.setCreateIfMissing(true);
+            dbOptions.setUnorderedWrite(true);
 
             //dbOptions.createMissingColumnFamilies()
             //dbOptions.setTwoWriteQueues(true);
 
-//            dbOptions.setMaxBackgroundJobs(0);
-//            dbOptions.setMaxBackgroundCompactions(0);
-//            dbOptions.setMaxBackgroundFlushes(0);
+            dbOptions.setMaxBackgroundJobs(3);
 
-            TransactionDBOptions x = new TransactionDBOptions();
-//            x.setNumStripes(0);
-//            x.setDefaultLockTimeout(0);
-//            x.setTransactionLockTimeout(0);
-            x.setWritePolicy(TxnDBWritePolicy.WRITE_PREPARED);
+//            TransactionDBOptions x = new TransactionDBOptions();
+////            x.setNumStripes(0);
+////            x.setDefaultLockTimeout(0);
+////            x.setTransactionLockTimeout(0);
+//            x.setWritePolicy(TxnDBWritePolicy.WRITE_PREPARED);
 
-            TransactionDB db = TransactionDB.open(dbOptions, x, db_path, columnFamilyDescriptors, columnFamilyHandles) ;
-//            MutableDBOptionsBuilder opt2b = MutableDBOptions.builder()
-//                .setWritableFileMaxBufferSize(10*1024*1024)
-//                .setCompactionReadaheadSize(2*1024*1024)
-//                .setMaxOpenFiles(-1)
-//                ;
-//            opt2b.setBaseBackgroundCompactions(2);
-//            db.setDBOptions(opt2b.build());
+//            TransactionDB db = TransactionDB.open(dbOptions, x, db_path, columnFamilyDescriptors, columnFamilyHandles) ;
+////            MutableDBOptionsBuilder opt2b = MutableDBOptions.builder()
+////                .setWritableFileMaxBufferSize(10*1024*1024)
+////                .setCompactionReadaheadSize(2*1024*1024)
+////                .setMaxOpenFiles(-1)
+////                ;
+////            opt2b.setBaseBackgroundCompactions(2);
+////            db.setDBOptions(opt2b.build());
 
-            //OptimisticTransactionOptions x1 = new OptimisticTransactionOptions();
-            //OptimisticTransactionDB db = OptimisticTransactionDB.open(options, db_path, columnFamilyDescriptors, columnFamilyHandles) ;
+//            OptimisticTransactionOptions x1 = new OptimisticTransactionOptions();
+            OptimisticTransactionDB db =
+                    OptimisticTransactionDB.open(dbOptions, db_path, columnFamilyDescriptors, columnFamilyHandles) ;
 
             RocksTDB rtdb = new RocksTDB(db, Location.create(db_path), columnFamilyDescriptors, columnFamilyHandles);
             return rtdb;

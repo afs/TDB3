@@ -27,6 +27,7 @@ import org.apache.jena.dboe.transaction.txn.ComponentId;
 import org.apache.jena.dboe.transaction.txn.SysTransState;
 import org.apache.jena.dboe.transaction.txn.Transaction;
 import org.apache.jena.dboe.transaction.txn.TransactionalComponent;
+import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
@@ -35,7 +36,7 @@ import org.seaborne.tdb3.sys.RocksTDB;
 
 /**
  * {@link TransactionalComponent} for a RocksDB database.
- * 
+ *
  * @implNote RocksDB itself provide the full transaction cycle for commit.
  * <p>
  * As of version Rocks 6.4.6, the API does not expose a prepare()-commit() pair,
@@ -46,14 +47,14 @@ import org.seaborne.tdb3.sys.RocksTDB;
  */
 public class TransactionalComponentR implements TransactionalComponent {
 
-    private final org.rocksdb.TransactionDB rocksTxnDB;
+    private final org.rocksdb.OptimisticTransactionDB rocksTxnDB;
     private ThreadLocal<org.rocksdb.Transaction> thisTxn = ThreadLocal.withInitial(()->null);
 
     public TransactionalComponentR(RocksTDB rocksTDB) {
         this(rocksTDB.rdb);
     }
 
-    private TransactionalComponentR(TransactionDB rocksDB) {
+    private TransactionalComponentR(OptimisticTransactionDB rocksDB) {
         rocksTxnDB = rocksDB;
     }
 

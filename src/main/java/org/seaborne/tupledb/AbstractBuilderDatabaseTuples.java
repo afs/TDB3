@@ -47,6 +47,7 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTableConcrete;
 import org.apache.jena.tdb2.store.tupletable.TupleIndex;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 import org.apache.jena.tdb2.sys.SystemTDB;
+import org.seaborne.tdb3.DatasetGraphTDB3;
 
 /** Build a {@link DatasetGraphTuples}.
  * @implNote
@@ -78,17 +79,20 @@ public abstract class AbstractBuilderDatabaseTuples {
         startBuild();
         initBuild(appParams);
 
-
         ReorderTransformation reorder = ReorderLib.fixed();
         this.txnSystem = createTransactionalSystem();
 
         StorageTuples storageRDF = createStorageRDF();
         StoragePrefixes storagePrefixes = createStoragePrefixes();
-        DatasetGraph dsg = new DatasetGraphTuples(location, params, reorder, storageRDF, storagePrefixes, txnSystem);
+
+        DatasetGraph dsg = build(location, params, reorder, storageRDF, storagePrefixes, txnSystem);
+
         finishBuild();
         return dsg;
     }
 
+    protected abstract DatasetGraph build(Location location2, StoreParams params2, ReorderTransformation reorder, StorageTuples storageRDF,
+                                  StoragePrefixes storagePrefixes, TransactionalSystem txnSystem2);
 
     private void ensureInit() {
 

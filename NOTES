@@ -1,0 +1,54 @@
+== 2022-04-14
+
+
+[Thursday 18:55] Ian Bailey
+I like the RocksDB idea...but sounds like a lot of work ?
+
+
+hTo get it functionally working, no. It already works - I checked and updated it to latest Rocks and latest Jena 4.4.0. Thx to a UK gov grant in about 2012, the database side of things is structured for plugin replacements of storage. TDB3 is TDB2, replacing custom indexes with RocksDB. That gets a working system. It runs at 50k triple/s loading 25m. (TDB2 in full, offline (non-transactional) blast mode is 150k)
+
+Loading is distinctly slower than TDB2 but it is also naive. There are many blogs on how to improve things - could even [read the docs](https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide)! or [Confluent blog](https://www.confluent.io/blog/how-to-tune-rocksdb-kafka-streams-state-stores-performance/)
+
+From this starting point it is incremental steps to improve some aspect.
+
+Beyond: 
+
+--------
+https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning
+
+https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
+
+
+2022-=0-4- performance
+
+18:34:15 INFO  loader          :: Time = 161.657 seconds : Triples = 24,997,044 : Rate = 154,630 /s
+Txn-ish:
+
+Start .... Batch size = 1,000
+Time  = 88.173 s
+Count = 5,000,599
+Rate  = 8,002.809 TPS
+
+Start .... Batch size = 10,000
+Time  = 91.494 s
+Count = 5,000,599
+Rate  = 7,712.328 TPS
+
+Start .... Batch size = 100,000
+Time  = 60.287 s
+Count = 5,000,599
+Rate  = 11,704.542 TPS
+
+** OptimisticTransactionDB
+Start .... Batch size = 100,000
+Time  = 497.342 s
+Count = 24,997,044
+Rate  = -1,553.779 TPS (50K TPS)
+------------
+| C        |
+============
+| 24997044 |
+------------
+
+==> Parallel loading
+==> 
