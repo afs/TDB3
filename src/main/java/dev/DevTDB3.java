@@ -26,6 +26,9 @@ import org.apache.jena.graph.Node ;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.riot.system.AsyncParser;
+import org.apache.jena.riot.system.StreamRDF;
+import org.apache.jena.riot.system.StreamRDFLib;
 import org.apache.jena.sparql.core.DatasetGraph ;
 import org.apache.jena.sparql.core.Quad ;
 import org.apache.jena.sparql.exec.QueryExec;
@@ -126,27 +129,32 @@ public class DevTDB3 {
 
         System.out.printf("Start .... Batch size = %,d\n",N);
 
+//        long z = Timer.time(()->{
+//            Txn.executeWrite(dsg,  ()->{
+//                // Async parser.
+//                // Batch load.
+//                // Parallelize writes
+//                // Avoiding Memtable
+//                // Turn off compactions.
+//                RDFDataMgr.read(dsg, DATA);
+//            });
+//        });
+
         long z = Timer.time(()->{
             Txn.executeWrite(dsg,  ()->{
-                // Async parser.
-                // Batch load.
-                // Parallelize writes
-                // Avoiding Memtable
-                // Turn off compactions.
-                RDFDataMgr.read(dsg, DATA);
+                StreamRDF dest = StreamRDFLib.dataset(dsg);
+                AsyncParser.asyncParse(DATA, dest);
             });
         });
 
         double seconds = (z/1000.0);
         System.out.printf("Load time  = %,.3f s\n", seconds);
-
         DatasetGraphTDB3 dsg3 =  (DatasetGraphTDB3)dsg;
         long z1 = Timer.time(()->{
             dsg3.compact();
         });
         double compactionSeconds = (z1/1000.0);
         System.out.printf("Compaction = %,.3f s\n", compactionSeconds);
-
         int x =
             Txn.calculateRead(dsg,  ()->{
                 return dsg.getDefaultGraph().size();

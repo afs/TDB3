@@ -47,7 +47,6 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTableConcrete;
 import org.apache.jena.tdb2.store.tupletable.TupleIndex;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 import org.apache.jena.tdb2.sys.SystemTDB;
-import org.seaborne.tdb3.DatasetGraphTDB3;
 
 /** Build a {@link DatasetGraphTuples}.
  * @implNote
@@ -109,7 +108,7 @@ public abstract class AbstractBuilderDatabaseTuples {
         else
             fromExistingDatabaseArea(location);
         // This can write the chosen parameters if necessary (new database, appParams != null, locParams == null)
-        this.params = StoreParamsFactory.decideStoreParams(location, newArea, appParams, locParams, dftParams);
+        this.params = StoreParamsFactory.decideStoreParams(location, newArea, appParams, locParams, null, dftParams);
     }
 
     protected void startBuild() { }

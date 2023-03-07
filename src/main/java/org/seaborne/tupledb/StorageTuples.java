@@ -37,6 +37,7 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 /** {@link StorageRDF} based on {@link NodeTupleTable}. */
+@SuppressWarnings("deprecation")
 public class StorageTuples implements StorageRDF {
     private NodeTupleTable      tripleTable;
     private NodeTupleTable      quadTable;

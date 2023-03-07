@@ -1,3 +1,7 @@
+== 2022-0707
+* Node as well as triples (done?)
+* Bulk loading.
+
 == 2022-04-14
 
 
@@ -5,7 +9,7 @@
 I like the RocksDB idea...but sounds like a lot of work ?
 
 
-hTo get it functionally working, no. It already works - I checked and updated it to latest Rocks and latest Jena 4.4.0. Thx to a UK gov grant in about 2012, the database side of things is structured for plugin replacements of storage. TDB3 is TDB2, replacing custom indexes with RocksDB. That gets a working system. It runs at 50k triple/s loading 25m. (TDB2 in full, offline (non-transactional) blast mode is 150k)
+To get it functionally working, no. It already works - I checked and updated it to latest Rocks and latest Jena 4.4.0. Thx to a UK gov grant in about 2012, the database side of things is structured for plugin replacements of storage. TDB3 is TDB2, replacing custom indexes with RocksDB. That gets a working system. It runs at 50k triple/s loading 25m. (TDB2 in full, offline (non-transactional) blast mode is 150k)
 
 Loading is distinctly slower than TDB2 but it is also naive. There are many blogs on how to improve things - could even [read the docs](https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide)! or [Confluent blog](https://www.confluent.io/blog/how-to-tune-rocksdb-kafka-streams-state-stores-performance/)
 
@@ -19,7 +23,7 @@ https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning
 https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
 
 
-2022-=0-4- performance
+== 2022-04- performance
 
 18:34:15 INFO  loader          :: Time = 161.657 seconds : Triples = 24,997,044 : Rate = 154,630 /s
 Txn-ish:

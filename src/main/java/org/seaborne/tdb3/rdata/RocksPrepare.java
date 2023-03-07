@@ -20,7 +20,7 @@ package org.seaborne.tdb3.rdata;
 
 /**
  * Interface for telling the RocksDB backed indexes and node table that hey need to prepare.
- * That involves flusing any batched updates.
+ * That involves flushing any batched updates.
  */
 public interface RocksPrepare {
     public void prepare();

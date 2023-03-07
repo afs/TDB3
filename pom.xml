@@ -25,7 +25,7 @@
   <parent>
     <groupId>org.apache.jena</groupId>
     <artifactId>jena</artifactId>
-    <version>4.4.0</version>
+    <version>4.8.0-SNAPSHOT</version>
   </parent>
 
   <groupId>org.seaborne</groupId>
@@ -35,8 +35,8 @@
   <name>TDB3 (${project.artifactId})</name>
   
   <properties>
-    <ver.jena>4.4.0</ver.jena>
-    <ver.rocksdb>7.0.4</ver.rocksdb>
+    <ver.jena>4.7.0</ver.jena>
+    <ver.rocksdb>7.10.2</ver.rocksdb>
   </properties>
 
   <dependencies>
@@ -53,7 +53,7 @@
       <version>${ver.jena}</version>
     </dependency>
 
-    <!-- Temp during initial development -->
+	<!-- TDB3 is a TDB2 datasbase except that it uses RocksDB to implementation base storage --> 
     <dependency>
       <groupId>org.apache.jena</groupId>
       <artifactId>jena-tdb2</artifactId>
@@ -104,15 +104,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <release>11</release>
-          <!--
-            <encoding>UTF-8</encoding>
-            <debug>true</debug>
-            <debuglevel>source,lines,vars</debuglevel>
-            <optimize>true</optimize>
-            <source>1.8</source>
-            <target>1.8</target>
-              -->
+            <release>17</release>
           </configuration>
         </plugin>
 

@@ -24,7 +24,6 @@ import org.apache.jena.dboe.base.file.Location;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.OptimisticTransactionDB;
-import org.rocksdb.TransactionDB;
 
 /** Info for an open database */
 public class RocksTDB {

@@ -29,7 +29,6 @@ import org.apache.jena.dboe.transaction.txn.Transaction;
 import org.apache.jena.dboe.transaction.txn.TransactionalComponent;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
 import org.seaborne.tdb3.rdata.RocksPrepare;
 import org.seaborne.tdb3.sys.RocksTDB;

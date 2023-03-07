@@ -102,7 +102,7 @@ public class DatabaseBuilderTDB3 {
             rocksComp = new TransactionalComponentR(rtdb);
             TransactionalComponent tComp = rocksComp;
             // XXX No journal needed.
-            TransactionCoordinator tc = new TransactionCoordinator(Location.mem());
+            TransactionCoordinator tc = TransactionCoordinator.create(Location.mem());
             tc.add(tComp);
             tc.start();
             return new TransactionalBase(location.getDirectoryPath(), tc);
